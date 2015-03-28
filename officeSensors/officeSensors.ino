@@ -2,10 +2,14 @@
 #include "MPL3115A2.h" //Pressure sensor
 #include "HTU21D.h" //Humidity sensor
 
+// Includes for WiFi Connectivity
+#include <SPI.h>
+#include <SFE_CC3000.h>
+
 MPL3115A2 myPressure; //Create an instance of the pressure sensor
 HTU21D myHumidity; //Create an instance of the humidity sensor
 
-//Hardware pin definitions
+//Hardware pin definitions for weather shield
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // digital I/O pins
 const byte STAT1 = 7;
@@ -18,14 +22,27 @@ const byte BATT = A2;
 const byte WDIR = A0;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//Hardware pins for CC3000 WiFi chip
+#define CC3000_INT      2   // Needs to be an interrupt pin (D2/D3)
+#define CC3000_EN       7   // Can be any digital pin
+#define CC3000_CS       10  // Preferred is pin 10 on Uno
+
+// Connection info data lengths
+#define IP_ADDR_LEN     4   // Length of IP address in bytes
+
+// Constants
+unsigned int ap_security = WLAN_SEC_WPA2; // Security of network
+unsigned int timeout = 30000;             // Milliseconds
+
 //Global Variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+SFE_CC3000 wifi = SFE_CC3000(CC3000_INT, CC3000_EN, CC3000_CS);
+
 long lastSecond; //The millis counter to see when a second rolls by
 byte seconds; //When it hits 60, increase the current minute
 byte seconds_2m; //Keeps track of the "wind speed/dir avg" over last 2 minutes array of data
 byte minutes; //Keeps track of where we are in various arrays of data
 byte minutes_10m; //Keeps track of where we are in wind gust/dir over last 10 minutes array of data
-
 
 //These are all the weather values that wunderground expects:
 float humidity = 0; // [%]
@@ -39,7 +56,41 @@ float light_lvl = 455; //[analog value from 0 to 1023]
 
 void setup()
 {
-  Serial.begin(9600);
+  ConnectionInfo connection_info;
+  int i;
+  
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("Connecting to WiFi...");
+
+  if ( wifi.init() ) {
+    Serial.println("CC3000 initialization complete");
+  } else {
+    Serial.println("Something went wrong during CC3000 init!");
+  }
+  
+  // Connect to WiFi network stored in non-volatile memory
+  Serial.println("Connecting to network stored in profile...");
+  if ( !wifi.fastConnect(timeout) ) {
+    Serial.println("Error: Could not connect to network");
+  }
+  
+  // Gather connection details and print IP address
+  if ( !wifi.getConnectionInfo(connection_info) ) {
+    Serial.println("Error: Could not obtain connection details");
+  } else {
+    Serial.print("Connected to: ");
+    Serial.println(connection_info.ssid);
+    Serial.print("IP Address: ");
+    for (i = 0; i < IP_ADDR_LEN; i++) {
+      Serial.print(connection_info.ip_address[i]);
+      if ( i < IP_ADDR_LEN - 1 ) {
+        Serial.print(".");
+      }
+    }
+    Serial.println();
+  }
+  
   Serial.println("Weather Shield starting up...");
 
   pinMode(STAT1, OUTPUT); //Status LED Blue
@@ -136,4 +187,14 @@ void printWeather()
   Serial.println("#");
 }
 
-
+// Print out an IP Address in human-readable format
+void printIPAddr(unsigned char ip_addr[]) {
+  int i;
+  
+  for (i = 0; i < IP_ADDR_LEN; i++) {
+    Serial.print(ip_addr[i]);
+    if ( i < IP_ADDR_LEN - 1 ) {
+      Serial.print(".");
+    }
+  }
+}

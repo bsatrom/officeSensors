@@ -44,7 +44,6 @@ SFE_CC3000_Client client = SFE_CC3000_Client(wifi);
 
 unsigned long lastConnectionTime;
 
-//These are all the weather values that wunderground expects:
 float humidity = 0; // [%]
 float tempf = 0; // [temperature F]
 float pressure = 0;
@@ -182,8 +181,6 @@ void calcWeather()
   light_lvl = get_light_level();
 }
 
-//Returns the voltage of the light sensor based on the 3.3V rail
-//This allows us to ignore what VCC might be (an Arduino plugged into USB has VCC of 4.5 to 5.2V)
 float get_light_level()
 {
   float operatingVoltage = analogRead(REFERENCE_3V3);

@@ -107,19 +107,20 @@ void setup()
 
 void loop()
 {  
-  while (client.available()) {   
+  //For Debug - Display HTTP Response text
+  /*while (client.available()) {   
     char c = client.read();
     if (c) {
       Serial.print(c);
     }
-  }
+  }*/
     
   if(millis() - lastConnectionTime > 5000)
   {
     digitalWrite(STAT2, HIGH); //Blink stat LED
     
     calcWeather();
-    printWeather();
+    //printWeather();
     postWeather();
 
     digitalWrite(STAT2, LOW); //Turn off stat LED
@@ -127,7 +128,9 @@ void loop()
 }
 
 void postWeather() {
-  client.stop();
+  if (client.connected()) {
+    client.stop();
+  }
   
   if (client.connect(server, 80)) {
     Serial.println("Logging sensor data...");
@@ -143,7 +146,7 @@ void postWeather() {
     client.println(" HTTP/1.1");
     client.print("Host: ");
     client.println(server);
-    client.println("Cache-Control: no-cache");
+    client.println("Connection: close");
     client.println();
     
     Serial.println("Log sensors complete");

@@ -42,6 +42,9 @@ SFE_CC3000_Client client = SFE_CC3000_Client(wifi);
 // Remote Server for posting temperature data
 #define server "datadrop.wolframcloud.com"
 
+// Debug variable
+#define debug false
+
 unsigned long lastConnectionTime;
 
 float humidity = 0; // [%]
@@ -55,34 +58,35 @@ void setup()
   ConnectionInfo connection_info;
   int i;
   
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("Connecting to WiFi...");
-
-  if ( wifi.init() ) {
-    Serial.println("CC3000 initialization complete");
+  if (debug) {
+    Serial.begin(115200);
+    Serial.println();
+    Serial.println("Connecting to WiFi...");
   }
   
+  wifi.init();
+  
   // Connect to WiFi network stored in non-volatile memory
-  Serial.println("Connecting to network stored in profile...");
-  if ( !wifi.fastConnect(timeout) ) {
+  if ( !wifi.fastConnect(timeout) && debug ) {
     Serial.println("Error: Could not connect to network");
   }
   
   // Gather connection details and print IP address
-  if ( !wifi.getConnectionInfo(connection_info) ) {
-    Serial.println("Error: Could not obtain connection details");
-  } else {
-    Serial.print("Connected to: ");
-    Serial.println(connection_info.ssid);
-    Serial.print("IP Address: ");
-    for (i = 0; i < IP_ADDR_LEN; i++) {
-      Serial.print(connection_info.ip_address[i]);
-      if ( i < IP_ADDR_LEN - 1 ) {
-        Serial.print(".");
+  if (debug) {
+    if ( !wifi.getConnectionInfo(connection_info) ) {
+      Serial.println("Error: Could not obtain connection details");
+    } else {
+      Serial.print("Connected to: ");
+      Serial.println(connection_info.ssid);
+      Serial.print("IP Address: ");
+      for (i = 0; i < IP_ADDR_LEN; i++) {
+        Serial.print(connection_info.ip_address[i]);
+        if ( i < IP_ADDR_LEN - 1 ) {
+          Serial.print(".");
+        }
       }
+      Serial.println();
     }
-    Serial.println();
   }
   
   pinMode(STAT2, OUTPUT); //Status LED Green
@@ -101,26 +105,29 @@ void setup()
 
   lastConnectionTime = millis();
 
-  Serial.println();
-  Serial.println("Weather Shield online!");
+  if (debug) {
+    Serial.println();
+    Serial.println("Weather Shield online!");
+  }
 }
 
 void loop()
 {  
-  //For Debug - Display HTTP Response text
-  /*while (client.available()) {   
+  while (client.available() && debug) {   
     char c = client.read();
     if (c) {
       Serial.print(c);
     }
-  }*/
+  }
     
   if(millis() - lastConnectionTime > 5000)
   {
     digitalWrite(STAT2, HIGH); //Blink stat LED
     
     calcWeather();
-    //printWeather();
+    if (debug) {
+      printWeather();
+    }
     postWeather();
 
     digitalWrite(STAT2, LOW); //Turn off stat LED
@@ -133,7 +140,9 @@ void postWeather() {
   }
   
   if (client.connect(server, 80)) {
-    Serial.println("Logging sensor data...");
+    if (debug) {
+      Serial.println("Logging sensor data...");
+    }
   
     client.print("GET /api/v1.0/Add?bin=3_zE53-m&humidity=");
     client.print(humidity);
@@ -149,9 +158,12 @@ void postWeather() {
     client.println("Connection: close");
     client.println();
     
-    Serial.println("Log sensors complete");
+    if (debug) {
+      Serial.println("Log sensors complete");
+    }
+    
     lastConnectionTime = millis(); 
-  } else {
+  } else if (debug) {
     Serial.println("connection failed");
   }
 }

@@ -4,8 +4,7 @@
 
 // Includes for WiFi Connectivity
 #include <SPI.h>
-#include <SFE_CC3000.h>
-#include <SFE_CC3000_Client.h>
+#include <WiFi.h>
 
 MPL3115A2 myPressure; //Create an instance of the pressure sensor
 HTU21D myHumidity; //Create an instance of the humidity sensor
@@ -22,22 +21,14 @@ HTU21D myHumidity; //Create an instance of the humidity sensor
 #define WDIR A0
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-//Hardware pins for CC3000 WiFi chip
-#define CC3000_INT      2   // Needs to be an interrupt pin (D2/D3)
-#define CC3000_EN       7   // Can be any digital pin
-#define CC3000_CS       10  // Preferred is pin 10 on Uno
 
-// Connection info data lengths
-#define IP_ADDR_LEN     4   // Length of IP address in bytes
+char ssid[] = "5at70m5G";      //  your network SSID (name) 
+char pass[] = "Sarah0812!";   // your network password
 
-// Constants
-#define ap_security WLAN_SEC_WPA2
-#define timeout 30000
+int status = WL_IDLE_STATUS;
 
-//Global Variables
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-SFE_CC3000 wifi = SFE_CC3000(CC3000_INT, CC3000_EN, CC3000_CS);
-SFE_CC3000_Client client = SFE_CC3000_Client(wifi);
+// Initialize the Wifi client library
+WiFiClient client;
 
 // Remote Server for posting temperature data
 #define server "datadrop.wolframcloud.com"
@@ -55,38 +46,26 @@ float light_lvl = 455; //[analog value from 0 to 1023]
 
 void setup()
 {
-  ConnectionInfo connection_info;
   int i;
   
-  if (debug) {
-    Serial.begin(115200);
-    Serial.println();
-    Serial.println("Connecting to WiFi...");
-  }
-  
-  wifi.init();
-  
-  // Connect to WiFi network stored in non-volatile memory
-  if ( !wifi.fastConnect(timeout) && debug ) {
-    Serial.println("Error: Could not connect to network");
-  }
-  
-  // Gather connection details and print IP address
-  if (debug) {
-    if ( !wifi.getConnectionInfo(connection_info) ) {
-      Serial.println("Error: Could not obtain connection details");
-    } else {
-      Serial.print("Connected to: ");
-      Serial.println(connection_info.ssid);
-      Serial.print("IP Address: ");
-      for (i = 0; i < IP_ADDR_LEN; i++) {
-        Serial.print(connection_info.ip_address[i]);
-        if ( i < IP_ADDR_LEN - 1 ) {
-          Serial.print(".");
-        }
-      }
+  while ( status != WL_CONNECTED) { 
+    if (debug) {
+      Serial.begin(115200);
       Serial.println();
+      Serial.println("Connecting to WiFi...");
+      Serial.print("Attempting to connect to SSID: ");
+      Serial.println(ssid);
     }
+    
+    status = WiFi.begin(ssid, pass);
+
+    // wait 10 seconds for connection:
+    delay(10000);
+  } 
+  
+  if (debug)
+  {
+    printWifiStatus();
   }
   
   pinMode(STAT2, OUTPUT); //Status LED Green
@@ -196,4 +175,21 @@ float get_light_level()
   operatingVoltage = 3.3 / operatingVoltage; //The reference voltage is 3.3V 
   lightSensor = operatingVoltage * lightSensor; 
   return(lightSensor);
+}
+
+void printWifiStatus() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  // print your WiFi shield's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
 }

@@ -17,8 +17,6 @@ HTU21D myHumidity; //Create an instance of the humidity sensor
 // analog I/O pins
 #define REFERENCE_3V3 A3
 #define LIGHT A1
-#define BATT A2
-#define WDIR A0
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
